@@ -1,5 +1,16 @@
-// Initialize Firebase Firestore
+// YOUR FIREBASE CONFIGURATION
+const firebaseConfig = {
+    apiKey: "AIzaSyB0cb_OmjsYhUTsVALTgfXI0k_FbYkv8js",
+    authDomain: "shop-ya-kamau.firebaseapp.com",
+    projectId: "shop-ya-kamau",
+    storageBucket: "shop-ya-kamau.firebasestorage.app",
+    messagingSenderId: "296307002477",
+    appId: "1:296307002477:web:eea0703885b05edb4dc364",
+    measurementId: "G-QD88XV0H7D"
+};
+firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
+
 const DEFAULT_SETTINGS = {
     storeName: "SHOP YA KAMAU",
     currency: "KSh",
@@ -25,33 +36,12 @@ const INITIAL_PRODUCTS = [
             "https://images.unsplash.com/photo-1484704849700-f032a568e944?auto=format&fit=crop&w=600&q=80"
         ],
         description: "Premium over-ear headphones with deep bass, 30-hour battery life, and spatial audio support."
-    },
-    {
-        id: "prod_2",
-        title: "Minimalist Smart Watch Series V",
-        price: 18900.00,
-        category: "Electronics",
-        images: [
-            "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80",
-            "https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?auto=format&fit=crop&w=600&q=80"
-        ],
-        description: "Sleek fitness tracking smartwatch with heart rate sensor, OLED display, and water resistance."
-    },
-    {
-        id: "prod_3",
-        title: "Ergonomic Urban Daypack",
-        price: 6400.00,
-        category: "Fashion & Bags",
-        images: [
-            "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=600&q=80"
-        ],
-        description: "Water-resistant daily backpack with laptop sleeve, hidden security pocket, and USB port."
     }
 ];
 
-let settings = JSON.parse(localStorage.getItem('shopyakamau_settings')) || DEFAULT_SETTINGS;
-let products = JSON.parse(localStorage.getItem('shopyakamau_products')) || INITIAL_PRODUCTS;
-let orders = JSON.parse(localStorage.getItem('shopyakamau_orders')) || [];
+let settings = DEFAULT_SETTINGS;
+let products = [];
+let orders = [];
 let cart = JSON.parse(localStorage.getItem('shopyakamau_cart')) || [];
 let selectedCategory = 'All';
 
@@ -60,20 +50,37 @@ function formatMoney(amount) {
     return `${sym} ${parseFloat(amount).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
 }
 
+// REAL-TIME CLOUD SYNC
+function initStoreRealtime() {
+    db.collection("store").doc("config").onSnapshot(doc => {
+        if (doc.exists) {
+            settings = doc.data();
+            syncStoreData();
+        } else {
+            db.collection("store").doc("config").set(DEFAULT_SETTINGS);
+        }
+    });
+
+    db.collection("products").onSnapshot(snapshot => {
+        products = [];
+        snapshot.forEach(doc => products.push({ id: doc.id, ...doc.data() }));
+        if (products.length === 0) {
+            INITIAL_PRODUCTS.forEach(p => db.collection("products").doc(p.id).set(p));
+        }
+        renderCustomerProducts();
+    });
+
+    db.collection("orders").orderBy("dateTime", "desc").onSnapshot(snapshot => {
+        orders = [];
+        snapshot.forEach(doc => orders.push({ id: doc.id, ...doc.data() }));
+    });
+}
+
 window.onload = function() {
     document.getElementById('year-copy').textContent = new Date().getFullYear();
-    syncStoreData();
-    renderCustomerProducts();
+    initStoreRealtime();
     updateCartUI();
 };
-
-function saveData() {
-    localStorage.setItem('shopyakamau_settings', JSON.stringify(settings));
-    localStorage.setItem('shopyakamau_products', JSON.stringify(products));
-    localStorage.setItem('shopyakamau_orders', JSON.stringify(orders));
-    localStorage.setItem('shopyakamau_cart', JSON.stringify(cart));
-    syncStoreData();
-}
 
 function syncStoreData() {
     document.getElementById('store-nav-title').textContent = settings.storeName;
@@ -181,7 +188,7 @@ function renderCustomerProducts() {
                             <span class="text-xs text-slate-400 block font-medium">Price</span>
                             <span class="text-base font-extrabold text-slate-900">${formatMoney(product.price)}</span>
                         </div>
-                        <button onclick="addToCart('${product.id}')" class="bg-brand-600 hover:bg-brand-500 text-white px-3.5 py-2 rounded-xl text-xs font-semibold shadow-md shadow-brand-600/20 transition flex items-center gap-1.5">
+                        <button onclick="addToCart('${product.id}')" class="bg-brand-600 hover:bg-brand-500 text-white px-3.5 py-2 rounded-xl text-xs font-semibold shadow-md transition flex items-center gap-1.5">
                             <i class="fa-solid fa-plus"></i> Add to Cart
                         </button>
                     </div>
@@ -194,7 +201,6 @@ function renderCustomerProducts() {
 function switchCardImage(prodId, newSrc, thumbEl) {
     const cardImg = document.getElementById(`card-img-${prodId}`);
     if (cardImg) cardImg.src = newSrc;
-    
     const parentContainer = thumbEl.parentElement;
     parentContainer.querySelectorAll('img').forEach(img => img.classList.remove('thumb-active'));
     thumbEl.classList.add('thumb-active');
@@ -227,7 +233,7 @@ function addToCart(productId) {
             qty: 1
         });
     }
-    saveData();
+    localStorage.setItem('shopyakamau_cart', JSON.stringify(cart));
     updateCartUI();
     showToast(`Added "${product.title}" to cart!`);
 }
@@ -240,7 +246,7 @@ function updateCartQty(productId, change) {
             cart = cart.filter(i => i.id !== productId);
         }
     }
-    saveData();
+    localStorage.setItem('shopyakamau_cart', JSON.stringify(cart));
     updateCartUI();
 }
 
@@ -318,7 +324,6 @@ function toggleCheckoutModal(open) {
     else modal.classList.add('hidden');
 }
 
-// Compute official Nairobi Date and Time (EAT - Africa/Nairobi)
 function getNairobiTimestamp() {
     const now = new Date();
     const options = {
@@ -347,11 +352,10 @@ function submitCustomerOrder(e) {
     const deliveryFee = parseFloat(settings.deliveryFee) || 0;
     const total = subtotal + deliveryFee;
 
-    // Official Nairobi Time
     const nairobiTime = getNairobiTimestamp();
+    const orderId = 'ORD-' + Math.floor(100000 + Math.random() * 900000);
 
     const newOrder = {
-        id: 'ORD-' + Math.floor(100000 + Math.random() * 900000),
         dateTime: nairobiTime,
         customerName: name,
         customerPhone: phone,
@@ -365,28 +369,28 @@ function submitCustomerOrder(e) {
         contactChannel: channel
     };
 
-    orders.unshift(newOrder);
-    cart = [];
-    saveData();
-    updateCartUI();
-    toggleCheckoutModal(false);
+    db.collection("orders").doc(orderId).set(newOrder).then(() => {
+        cart = [];
+        localStorage.setItem('shopyakamau_cart', JSON.stringify(cart));
+        updateCartUI();
+        toggleCheckoutModal(false);
+        showToast("Order submitted successfully!");
 
-    showToast("Order submitted successfully!");
+        const itemsSummary = newOrder.items.map(i => `• ${i.title} (Qty: ${i.qty}) - ${formatMoney(i.price * i.qty)}`).join('\n');
+        const orderText = `Hello, I wish to make the following order(s):\n\n*ORDER ID:* #${orderId}\n*Date & Time (Nairobi EAT):* ${nairobiTime}\n\n*CUSTOMER DETAILS:*\nName: ${name}\nPhone: ${phone}\nDelivery Address: ${address}\nRequested Delivery Time: ${timePref}\n\n*ITEMS ORDERED:*\n${itemsSummary}\n\n*Subtotal:* ${formatMoney(subtotal)}\n*Delivery Fee:* ${formatMoney(deliveryFee)}\n*TOTAL PAYABLE:* ${formatMoney(total)}`;
 
-    const itemsSummary = newOrder.items.map(i => `• ${i.title} (Qty: ${i.qty}) - ${formatMoney(i.price * i.qty)}`).join('\n');
-    const orderText = `Hello, I wish to make the following order(s):\n\n*ORDER ID:* #${newOrder.id}\n*Date & Time (Nairobi EAT):* ${nairobiTime}\n\n*CUSTOMER DETAILS:*\nName: ${name}\nPhone: ${phone}\nDelivery Address: ${address}\nRequested Delivery Time: ${timePref}\n\n*ITEMS ORDERED:*\n${itemsSummary}\n\n*Subtotal:* ${formatMoney(subtotal)}\n*Delivery Fee:* ${formatMoney(deliveryFee)}\n*TOTAL PAYABLE:* ${formatMoney(total)}`;
-
-    if (channel === 'whatsapp') {
-        const cleanWa = settings.whatsapp.replace(/[^0-9]/g, '');
-        window.open(`https://wa.me/${cleanWa}?text=${encodeURIComponent(orderText)}`, '_blank');
-    } else if (channel === 'phone') {
-        window.location.href = `tel:${settings.phone}`;
-    } else if (channel === 'sms') {
-        window.location.href = `sms:${settings.phone}?body=${encodeURIComponent(orderText)}`;
-    } else if (channel === 'instagram') {
-        const cleanIg = settings.instagram.replace('@', '');
-        window.open(`https://instagram.com/${cleanIg}`, '_blank');
-    }
+        if (channel === 'whatsapp') {
+            const cleanWa = settings.whatsapp.replace(/[^0-9]/g, '');
+            window.open(`https://wa.me/${cleanWa}?text=${encodeURIComponent(orderText)}`, '_blank');
+        } else if (channel === 'phone') {
+            window.location.href = `tel:${settings.phone}`;
+        } else if (channel === 'sms') {
+            window.location.href = `sms:${settings.phone}?body=${encodeURIComponent(orderText)}`;
+        } else if (channel === 'instagram') {
+            const cleanIg = settings.instagram.replace('@', '');
+            window.open(`https://instagram.com/${cleanIg}`, '_blank');
+        }
+    });
 }
 
 function showToast(msg) {
