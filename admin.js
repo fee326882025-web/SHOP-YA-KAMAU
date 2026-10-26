@@ -71,17 +71,22 @@ function syncStoreData() {
         if (viewEl) viewEl.style.backgroundImage = `url('${settings.bgUrl}')`;
     }
 
-    if (document.getElementById('setting-store-name')) {
-        document.getElementById('setting-store-name').value = settings.storeName;
+    const storeNameEl = document.getElementById('setting-store-name');
+    if (storeNameEl) {
+        storeNameEl.value = settings.storeName || '';
         document.getElementById('setting-store-currency').value = settings.currency || 'KSh';
-        document.getElementById('setting-store-phone').value = settings.phone;
-        document.getElementById('setting-store-whatsapp').value = settings.whatsapp;
-        document.getElementById('setting-store-instagram').value = settings.instagram;
-        document.getElementById('setting-store-facebook').value = settings.facebook;
-        document.getElementById('setting-store-location').value = settings.location;
+        document.getElementById('setting-store-phone').value = settings.phone || '';
+        document.getElementById('setting-store-whatsapp').value = settings.whatsapp || '';
+        document.getElementById('setting-store-instagram').value = settings.instagram || '';
+        document.getElementById('setting-store-facebook').value = settings.facebook || '';
+        document.getElementById('setting-store-location').value = settings.location || '';
         document.getElementById('setting-maps-url').value = settings.mapsUrl || '';
-        document.getElementById('setting-delivery-fee').value = settings.deliveryFee;
-        document.getElementById('setting-bg-url').value = settings.bgUrl;
+        document.getElementById('setting-delivery-fee').value = settings.deliveryFee || 0;
+        
+        const bgUrlInput = document.getElementById('setting-bg-url');
+        if (bgUrlInput) {
+            bgUrlInput.value = settings.bgUrl || '';
+        }
     }
 }
 
