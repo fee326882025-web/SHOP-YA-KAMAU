@@ -1,3 +1,26 @@
+<script type="module">
+  // Import the functions you need from the SDKs you need
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-analytics.js";
+  // TODO: Add SDKs for Firebase products that you want to use
+  // https://firebase.google.com/docs/web/setup#available-libraries
+
+  // Your web app's Firebase configuration
+  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+  const firebaseConfig = {
+    apiKey: "AIzaSyB0cb_OmjsYhUTsVALTgfXI0k_FbYkv8js",
+    authDomain: "shop-ya-kamau.firebaseapp.com",
+    projectId: "shop-ya-kamau",
+    storageBucket: "shop-ya-kamau.firebasestorage.app",
+    messagingSenderId: "296307002477",
+    appId: "1:296307002477:web:eea0703885b05edb4dc364",
+    measurementId: "G-QD88XV0H7D"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
+</script>
 const DEFAULT_SETTINGS = {
     storeName: "SHOP YA KAMAU",
     currency: "KSh",
