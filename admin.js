@@ -1,5 +1,16 @@
-// Initialize Firebase Firestore
+// YOUR FIREBASE CONFIGURATION
+const firebaseConfig = {
+    apiKey: "AIzaSyB0cb_OmjsYhUTsVALTgfXI0k_FbYkv8js",
+    authDomain: "shop-ya-kamau.firebaseapp.com",
+    projectId: "shop-ya-kamau",
+    storageBucket: "shop-ya-kamau.firebasestorage.app",
+    messagingSenderId: "296307002477",
+    appId: "1:296307002477:web:eea0703885b05edb4dc364",
+    measurementId: "G-QD88XV0H7D"
+};
+firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
+
 const DEFAULT_SETTINGS = {
     storeName: "SHOP YA KAMAU",
     currency: "KSh",
@@ -14,35 +25,9 @@ const DEFAULT_SETTINGS = {
     adminPassword: "admin123"
 };
 
-const INITIAL_PRODUCTS = [
-    {
-        id: "prod_1",
-        title: "Wireless Noise-Canceling Headphones",
-        price: 12900.00,
-        category: "Electronics",
-        images: [
-            "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=600&q=80",
-            "https://images.unsplash.com/photo-1484704849700-f032a568e944?auto=format&fit=crop&w=600&q=80"
-        ],
-        description: "Premium over-ear headphones with deep bass, 30-hour battery life, and spatial audio support."
-    },
-    {
-        id: "prod_2",
-        title: "Minimalist Smart Watch Series V",
-        price: 18900.00,
-        category: "Electronics",
-        images: [
-            "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80",
-            "https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?auto=format&fit=crop&w=600&q=80"
-        ],
-        description: "Sleek fitness tracking smartwatch with heart rate sensor, OLED display, and water resistance."
-    }
-];
-
-let settings = JSON.parse(localStorage.getItem('shopyakamau_settings')) || DEFAULT_SETTINGS;
-let products = JSON.parse(localStorage.getItem('shopyakamau_products')) || INITIAL_PRODUCTS;
-let orders = JSON.parse(localStorage.getItem('shopyakamau_orders')) || [];
-let cart = JSON.parse(localStorage.getItem('shopyakamau_cart')) || [];
+let settings = DEFAULT_SETTINGS;
+let products = [];
+let orders = [];
 let tempUploadedImages = [];
 
 function formatMoney(amount) {
@@ -50,34 +35,54 @@ function formatMoney(amount) {
     return `${sym} ${parseFloat(amount).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
 }
 
+function initAdminRealtime() {
+    db.collection("store").doc("config").onSnapshot(doc => {
+        if (doc.exists) {
+            settings = doc.data();
+            syncStoreData();
+        }
+    });
+
+    db.collection("products").onSnapshot(snapshot => {
+        products = [];
+        snapshot.forEach(doc => products.push({ id: doc.id, ...doc.data() }));
+        if (document.getElementById('admin-products-grid') && !document.getElementById('admin-tab-products').classList.contains('hidden')) {
+            renderAdminProducts();
+        }
+    });
+
+    db.collection("orders").onSnapshot(snapshot => {
+        orders = [];
+        snapshot.forEach(doc => orders.push({ id: doc.id, ...doc.data() }));
+        if (document.getElementById('admin-orders-table-body') && !document.getElementById('admin-tab-orders').classList.contains('hidden')) {
+            renderAdminOrders();
+        }
+    });
+}
+
 window.onload = function() {
-    syncStoreData();
+    initAdminRealtime();
     openAdminLoginModal();
 };
 
-function saveData() {
-    localStorage.setItem('shopyakamau_settings', JSON.stringify(settings));
-    localStorage.setItem('shopyakamau_products', JSON.stringify(products));
-    localStorage.setItem('shopyakamau_orders', JSON.stringify(orders));
-    localStorage.setItem('shopyakamau_cart', JSON.stringify(cart));
-    syncStoreData();
-}
-
 function syncStoreData() {
     if (settings.bgUrl) {
-        document.getElementById('admin-view').style.backgroundImage = `url('${settings.bgUrl}')`;
+        const viewEl = document.getElementById('admin-view');
+        if (viewEl) viewEl.style.backgroundImage = `url('${settings.bgUrl}')`;
     }
 
-    document.getElementById('setting-store-name').value = settings.storeName;
-    document.getElementById('setting-store-currency').value = settings.currency || 'KSh';
-    document.getElementById('setting-store-phone').value = settings.phone;
-    document.getElementById('setting-store-whatsapp').value = settings.whatsapp;
-    document.getElementById('setting-store-instagram').value = settings.instagram;
-    document.getElementById('setting-store-facebook').value = settings.facebook;
-    document.getElementById('setting-store-location').value = settings.location;
-    document.getElementById('setting-maps-url').value = settings.mapsUrl || '';
-    document.getElementById('setting-delivery-fee').value = settings.deliveryFee;
-    document.getElementById('setting-bg-url').value = settings.bgUrl;
+    if (document.getElementById('setting-store-name')) {
+        document.getElementById('setting-store-name').value = settings.storeName;
+        document.getElementById('setting-store-currency').value = settings.currency || 'KSh';
+        document.getElementById('setting-store-phone').value = settings.phone;
+        document.getElementById('setting-store-whatsapp').value = settings.whatsapp;
+        document.getElementById('setting-store-instagram').value = settings.instagram;
+        document.getElementById('setting-store-facebook').value = settings.facebook;
+        document.getElementById('setting-store-location').value = settings.location;
+        document.getElementById('setting-maps-url').value = settings.mapsUrl || '';
+        document.getElementById('setting-delivery-fee').value = settings.deliveryFee;
+        document.getElementById('setting-bg-url').value = settings.bgUrl;
+    }
 }
 
 function handleCurrencySelect(selectEl) {
@@ -191,7 +196,7 @@ function renderAdminOrders() {
                 <button onclick="toggleOrderStatus('${order.id}')" title="Toggle Status" class="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-300 transition">
                     <i class="fa-solid fa-arrows-rotate text-xs"></i>
                 </button>
-                <button onclick="printOrderReceipt('${order.id}')" title="Print Delivery Receipt with Photos" class="px-2.5 py-1.5 bg-brand-600/20 hover:bg-brand-600 text-brand-300 hover:text-white border border-brand-500/30 rounded-lg text-xs font-semibold transition">
+                <button onclick="printOrderReceipt('${order.id}')" title="Print Delivery Receipt" class="px-2.5 py-1.5 bg-brand-600/20 hover:bg-brand-600 text-brand-300 hover:text-white border border-brand-500/30 rounded-lg text-xs font-semibold transition">
                     <i class="fa-solid fa-print mr-1"></i> Receipt
                 </button>
             </td>
@@ -202,14 +207,13 @@ function renderAdminOrders() {
 function toggleOrderStatus(orderId) {
     const order = orders.find(o => o.id === orderId);
     if (order) {
-        order.status = order.status === 'Pending Delivery' ? 'Delivered' : 'Pending Delivery';
-        saveData();
-        renderAdminOrders();
-        showToast(`Order status updated to ${order.status}`);
+        const newStatus = order.status === 'Pending Delivery' ? 'Delivered' : 'Pending Delivery';
+        db.collection("orders").doc(orderId).update({ status: newStatus }).then(() => {
+            showToast(`Order status updated to ${newStatus}`);
+        });
     }
 }
 
-// PRINT RECEIPT WITH PRODUCT PHOTOS
 function printOrderReceipt(orderId) {
     const order = orders.find(o => o.id === orderId);
     if (!order) return;
@@ -229,9 +233,7 @@ function printOrderReceipt(orderId) {
     const itemsTbody = document.getElementById('print-items-body');
     itemsTbody.innerHTML = order.items.map(i => `
         <tr>
-            <td class="py-2">
-                <img src="${i.image}" class="w-10 h-10 object-cover rounded border border-slate-300">
-            </td>
+            <td class="py-2"><img src="${i.image}" class="w-10 h-10 object-cover rounded border border-slate-300"></td>
             <td class="py-2 font-medium">${i.title}</td>
             <td class="py-2 text-center">${i.qty}</td>
             <td class="py-2 text-right">${formatMoney(i.price)}</td>
@@ -246,13 +248,11 @@ function printOrderReceipt(orderId) {
     window.print();
 }
 
-// EXPORT ORDERS TO EXCEL (.XLSX)
 function exportOrdersToExcel() {
     if (orders.length === 0) {
         alert("No orders available to export.");
         return;
     }
-
     const excelData = orders.map(o => ({
         "Order ID": o.id,
         "Date & Time (Nairobi EAT)": o.dateTime,
@@ -267,34 +267,24 @@ function exportOrdersToExcel() {
         "Total Amount": o.total,
         "Status": o.status
     }));
-
     const worksheet = XLSX.utils.json_to_sheet(excelData);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Orders");
-
-    // Auto fit column widths
-    const max_width = excelData.reduce((w, r) => Math.max(w, r["Customer Name"].length), 10);
-    worksheet["!cols"] = [ { wch: 15 }, { wch: 25 }, { wch: max_width + 5 }, { wch: 18 }, { wch: 30 }, { wch: 15 }, { wch: 15 }, { wch: 40 }, { wch: 12 }, { wch: 12 }, { wch: 14 }, { wch: 18 } ];
-
     XLSX.writeFile(workbook, `Shop_Ya_Kamau_Orders_${Date.now()}.xlsx`);
     showToast("Excel spreadsheet generated!");
 }
 
-// EXPORT ORDERS TO CSV
 function exportOrdersToCSV() {
     if (orders.length === 0) {
         alert("No orders available to export.");
         return;
     }
-
     let csvContent = "data:text/csv;charset=utf-8,";
     csvContent += "Order ID,Date & Time (EAT),Customer Name,Phone,Delivery Address,Items,Total,Status\n";
-
     orders.forEach(o => {
         const itemsStr = o.items.map(i => `${i.qty}x ${i.title}`).join('; ');
         csvContent += `"${o.id}","${o.dateTime}","${o.customerName}","${o.customerPhone}","${o.customerAddress}","${itemsStr}","${o.total}","${o.status}"\n`;
     });
-
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
@@ -305,28 +295,19 @@ function exportOrdersToCSV() {
     showToast("CSV spreadsheet exported!");
 }
 
-// MULTI-PHOTO PRODUCT MANAGEMENT
 function renderAdminProducts() {
     const grid = document.getElementById('admin-products-grid');
     grid.innerHTML = products.map(product => {
         const imgList = (product.images && product.images.length > 0) ? product.images : [product.image || 'https://placehold.co/600x400/0ea5e9/ffffff?text=Product'];
-        
         return `
             <div class="bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden shadow-xl flex flex-col">
                 <div class="h-44 overflow-hidden bg-slate-950 relative">
                     <img src="${imgList[0]}" alt="${product.title}" class="w-full h-full object-cover">
-                    <span class="absolute top-3 left-3 bg-slate-950/80 text-white text-[10px] font-bold uppercase px-2 py-0.5 rounded-md border border-slate-700">
-                        ${product.category}
-                    </span>
-                    <span class="absolute bottom-2 right-2 bg-slate-900/90 text-amber-400 text-[10px] font-bold px-2 py-0.5 rounded-md border border-slate-800">
-                        <i class="fa-solid fa-images mr-1"></i>${imgList.length} Photos
-                    </span>
+                    <span class="absolute top-3 left-3 bg-slate-950/80 text-white text-[10px] font-bold uppercase px-2 py-0.5 rounded-md border border-slate-700">${product.category}</span>
+                    <span class="absolute bottom-2 right-2 bg-slate-900/90 text-amber-400 text-[10px] font-bold px-2 py-0.5 rounded-md border border-slate-800"><i class="fa-solid fa-images mr-1"></i>${imgList.length} Photos</span>
                 </div>
-                <!-- Angles Gallery Strip -->
                 <div class="flex items-center gap-1.5 p-2 bg-slate-950/60 border-t border-b border-slate-800 overflow-x-auto">
-                    ${imgList.map(img => `
-                        <img src="${img}" class="w-8 h-8 object-cover rounded-md border border-slate-800">
-                    `).join('')}
+                    ${imgList.map(img => `<img src="${img}" class="w-8 h-8 object-cover rounded-md border border-slate-800">`).join('')}
                 </div>
                 <div class="p-4 flex-1 flex flex-col justify-between">
                     <div>
@@ -337,12 +318,8 @@ function renderAdminProducts() {
                         <p class="text-xs text-slate-400 mt-1 line-clamp-2">${product.description}</p>
                     </div>
                     <div class="mt-4 pt-3 border-t border-slate-800 flex justify-end gap-2">
-                        <button onclick="editProduct('${product.id}')" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-lg border border-slate-700 transition">
-                            <i class="fa-solid fa-pen-to-square mr-1"></i> Edit
-                        </button>
-                        <button onclick="deleteProduct('${product.id}')" class="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-xs font-medium rounded-lg transition">
-                            <i class="fa-solid fa-trash mr-1"></i> Delete
-                        </button>
+                        <button onclick="editProduct('${product.id}')" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-lg border border-slate-700 transition"><i class="fa-solid fa-pen-to-square mr-1"></i> Edit</button>
+                        <button onclick="deleteProduct('${product.id}')" class="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-xs font-medium rounded-lg transition"><i class="fa-solid fa-trash mr-1"></i> Delete</button>
                     </div>
                 </div>
             </div>
@@ -368,13 +345,12 @@ function openProductModal(productId = null) {
 
             const existingImgs = (product.images && product.images.length > 0) ? product.images : [product.image];
             existingImgs.forEach(url => addPhotoUrlInput(url));
-
             titleEl.textContent = "Edit Product & Photos";
         }
     } else {
         document.getElementById('product-form').reset();
         document.getElementById('prod-id').value = '';
-        addPhotoUrlInput(); // Add one default input
+        addPhotoUrlInput();
         titleEl.textContent = "Add New Product (Multi-Photo)";
     }
     modal.classList.remove('hidden');
@@ -386,27 +362,9 @@ function addPhotoUrlInput(value = '') {
     div.className = 'flex items-center gap-2';
     div.innerHTML = `
         <input type="text" value="${value}" placeholder="Photo URL (e.g. https://... .jpg)" class="prod-url-input w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-brand-500">
-        <button type="button" onclick="this.parentElement.remove()" class="text-slate-500 hover:text-red-400 text-xs px-2 py-1">
-            <i class="fa-solid fa-trash"></i>
-        </button>
+        <button type="button" onclick="this.parentElement.remove()" class="text-slate-500 hover:text-red-400 text-xs px-2 py-1"><i class="fa-solid fa-trash"></i></button>
     `;
     container.appendChild(div);
-}
-
-function handleMultipleImageFiles(e) {
-    const files = Array.from(e.target.files);
-    tempUploadedImages = [];
-    const previewContainer = document.getElementById('modal-images-preview');
-    previewContainer.innerHTML = '';
-
-    files.forEach(file => {
-        const reader = new FileReader();
-        reader.onload = function(evt) {
-            tempUploadedImages.push(evt.target.result);
-            previewContainer.innerHTML += `<img src="${evt.target.result}" class="w-10 h-10 object-cover rounded-lg border border-amber-500">`;
-        };
-        reader.readAsDataURL(file);
-    });
 }
 
 function closeProductModal() {
@@ -415,7 +373,7 @@ function closeProductModal() {
 
 function saveProduct(e) {
     e.preventDefault();
-    const id = document.getElementById('prod-id').value;
+    const id = document.getElementById('prod-id').value || 'prod_' + Date.now();
     const title = document.getElementById('prod-title').value;
     const price = parseFloat(document.getElementById('prod-price').value);
     const category = document.getElementById('prod-category').value;
@@ -423,28 +381,14 @@ function saveProduct(e) {
 
     const urlInputs = Array.from(document.querySelectorAll('.prod-url-input')).map(i => i.value.trim()).filter(val => val !== '');
     const allImages = [...urlInputs, ...tempUploadedImages];
+    if (allImages.length === 0) allImages.push('https://placehold.co/600x400/0ea5e9/ffffff?text=Product');
 
-    if (allImages.length === 0) {
-        allImages.push('https://placehold.co/600x400/0ea5e9/ffffff?text=Product');
-    }
-
-    if (id) {
-        const index = products.findIndex(p => p.id === id);
-        if (index !== -1) {
-            products[index] = { id, title, price, category, images: allImages, image: allImages[0], description };
-        }
-    } else {
-        const newProd = {
-            id: 'prod_' + Date.now(),
-            title, price, category, images: allImages, image: allImages[0], description
-        };
-        products.push(newProd);
-    }
-
-    saveData();
-    renderAdminProducts();
-    closeProductModal();
-    showToast("Product & Photo Angles saved successfully!");
+    db.collection("products").doc(id).set({
+        title, price, category, images: allImages, image: allImages[0], description
+    }).then(() => {
+        closeProductModal();
+        showToast("Product saved to cloud instantly!");
+    });
 }
 
 function editProduct(id) {
@@ -453,22 +397,9 @@ function editProduct(id) {
 
 function deleteProduct(id) {
     if (confirm("Are you sure you want to delete this product?")) {
-        products = products.filter(p => p.id !== id);
-        saveData();
-        renderAdminProducts();
-        showToast("Product removed");
-    }
-}
-
-function handleAdminBgUpload(e) {
-    const file = e.target.files[0];
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = function(evt) {
-            settings.bgUrl = evt.target.result;
-            document.getElementById('setting-bg-url').value = 'Uploaded JPG image ready';
-        };
-        reader.readAsDataURL(file);
+        db.collection("products").doc(id).delete().then(() => {
+            showToast("Product removed from live store");
+        });
     }
 }
 
@@ -485,12 +416,11 @@ function saveAdminSettings(e) {
     settings.deliveryFee = parseFloat(document.getElementById('setting-delivery-fee').value) || 0;
 
     const bgUrlInput = document.getElementById('setting-bg-url').value;
-    if (bgUrlInput && !bgUrlInput.includes('Uploaded JPG image ready')) {
-        settings.bgUrl = bgUrlInput;
-    }
+    if (bgUrlInput) settings.bgUrl = bgUrlInput;
 
-    saveData();
-    showToast("Settings updated!");
+    db.collection("store").doc("config").set(settings).then(() => {
+        showToast("Settings updated in cloud!");
+    });
 }
 
 function openChangePasswordModal() {
@@ -514,11 +444,12 @@ function handleChangePassword(e) {
     }
 
     settings.adminPassword = newP;
-    saveData();
-    toggleChangePassModal(false);
-    document.getElementById('old-pass').value = '';
-    document.getElementById('new-pass').value = '';
-    showToast("Master Security Password updated successfully!");
+    db.collection("store").doc("config").set(settings).then(() => {
+        toggleChangePassModal(false);
+        document.getElementById('old-pass').value = '';
+        document.getElementById('new-pass').value = '';
+        showToast("Master Security Password updated!");
+    });
 }
 
 function showToast(msg) {
