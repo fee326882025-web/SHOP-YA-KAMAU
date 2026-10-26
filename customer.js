@@ -1,3 +1,5 @@
+// Initialize Firebase Firestore
+const db = firebase.firestore();
 const DEFAULT_SETTINGS = {
     storeName: "SHOP YA KAMAU",
     currency: "KSh",
