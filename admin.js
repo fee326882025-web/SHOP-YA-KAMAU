@@ -182,7 +182,7 @@ function renderAdminOrders() {
                 <div class="space-y-1">
                     ${order.items.map(i => `
                         <div class="flex items-center gap-2 text-xs text-slate-300">
-                            <img src="${i.image}" class="w-7 h-7 object-cover rounded-md border border-slate-700">
+                            <img src="${i.image}" onerror="this.src='https://placehold.co/600x400/0ea5e9/ffffff?text=Product'" class="w-7 h-7 object-cover rounded-md border border-slate-750">
                             <span>${i.qty}x ${i.title}</span>
                         </div>
                     `).join('')}
@@ -238,7 +238,7 @@ function printOrderReceipt(orderId) {
     const itemsTbody = document.getElementById('print-items-body');
     itemsTbody.innerHTML = order.items.map(i => `
         <tr>
-            <td class="py-2"><img src="${i.image}" class="w-10 h-10 object-cover rounded border border-slate-300"></td>
+            <td class="py-2"><img src="${i.image}" onerror="this.src='https://placehold.co/600x400/0ea5e9/ffffff?text=Product'" class="w-10 h-10 object-cover rounded border border-slate-300"></td>
             <td class="py-2 font-medium">${i.title}</td>
             <td class="py-2 text-center">${i.qty}</td>
             <td class="py-2 text-right">${formatMoney(i.price)}</td>
@@ -307,12 +307,12 @@ function renderAdminProducts() {
         return `
             <div class="bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden shadow-xl flex flex-col">
                 <div class="h-44 overflow-hidden bg-slate-950 relative">
-                    <img src="${imgList[0]}" alt="${product.title}" class="w-full h-full object-cover">
+                    <img src="${imgList[0]}" onerror="this.src='https://placehold.co/600x400/0ea5e9/ffffff?text=Product'" alt="${product.title}" class="w-full h-full object-cover">
                     <span class="absolute top-3 left-3 bg-slate-950/80 text-white text-[10px] font-bold uppercase px-2 py-0.5 rounded-md border border-slate-700">${product.category}</span>
                     <span class="absolute bottom-2 right-2 bg-slate-900/90 text-amber-400 text-[10px] font-bold px-2 py-0.5 rounded-md border border-slate-800"><i class="fa-solid fa-images mr-1"></i>${imgList.length} Photos</span>
                 </div>
                 <div class="flex items-center gap-1.5 p-2 bg-slate-950/60 border-t border-b border-slate-800 overflow-x-auto">
-                    ${imgList.map(img => `<img src="${img}" class="w-8 h-8 object-cover rounded-md border border-slate-800">`).join('')}
+                    ${imgList.map(img => `<img src="${img}" onerror="this.src='https://placehold.co/600x400/0ea5e9/ffffff?text=Product'" class="w-8 h-8 object-cover rounded-md border border-slate-800">`).join('')}
                 </div>
                 <div class="p-4 flex-1 flex flex-col justify-between">
                     <div>
@@ -366,7 +366,7 @@ function addPhotoUrlInput(value = '') {
     const div = document.createElement('div');
     div.className = 'flex items-center gap-2';
     div.innerHTML = `
-        <input type="text" value="${value}" placeholder="Photo URL (e.g. https://... .jpg)" class="prod-url-input w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-brand-500">
+        <input type="text" value="${value}" placeholder="Paste any image or link (e.g. https://...)" class="prod-url-input w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-brand-500">
         <button type="button" onclick="this.parentElement.remove()" class="text-slate-500 hover:text-red-400 text-xs px-2 py-1"><i class="fa-solid fa-trash"></i></button>
     `;
     container.appendChild(div);
