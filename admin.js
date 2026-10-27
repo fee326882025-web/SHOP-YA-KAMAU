@@ -25,10 +25,32 @@ const DEFAULT_SETTINGS = {
     adminPassword: "admin123"
 };
 
+const FALLBACK_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='400' viewBox='0 0 600 400'%3E%3Crect width='600' height='400' fill='%25230f172a'/%3E%3Cpath d='M260 170a30 30 0 1 0 0-60 30 30 0 0 0 0 60zm100-20l-70 90-40-50-90 110h280l-80-150z' fill='%2523334155'/%3E%3Ctext x='50%25' y='82%25' dominant-baseline='middle' text-anchor='middle' fill='%252394a3b8' font-family='sans-serif' font-size='18' font-weight='600'%3EImage Preview Unavailable%3C/text%3E%3C/svg%3E";
+
 let settings = DEFAULT_SETTINGS;
 let products = [];
 let orders = [];
 let tempUploadedImages = [];
+
+/**
+ * Transforms any web link (including Instagram post/reel URLs) into a directly renderable image URL.
+ */
+function resolveImageUrl(url) {
+    if (!url || typeof url !== 'string') return FALLBACK_IMAGE;
+    let cleanUrl = url.trim();
+    if (!cleanUrl) return FALLBACK_IMAGE;
+
+    // Detect Instagram Post / Reel / Direct Share links
+    if (cleanUrl.includes('instagram.com') || cleanUrl.includes('instagr.am')) {
+        // Strip out trailing query parameters
+        let stripped = cleanUrl.split('?')[0];
+        if (!stripped.endsWith('/')) stripped += '/';
+        // Append Instagram's native public image media endpoint
+        return stripped + 'media/?size=l';
+    }
+
+    return cleanUrl;
+}
 
 function formatMoney(amount) {
     const sym = settings.currency || 'KSh';
@@ -68,7 +90,7 @@ window.onload = function() {
 function syncStoreData() {
     if (settings.bgUrl) {
         const viewEl = document.getElementById('admin-view');
-        if (viewEl) viewEl.style.backgroundImage = `url('${settings.bgUrl}')`;
+        if (viewEl) viewEl.style.backgroundImage = `url('${resolveImageUrl(settings.bgUrl)}')`;
     }
 
     const storeNameEl = document.getElementById('setting-store-name');
@@ -180,12 +202,15 @@ function renderAdminOrders() {
             </td>
             <td class="py-3.5 px-4">
                 <div class="space-y-1">
-                    ${order.items.map(i => `
-                        <div class="flex items-center gap-2 text-xs text-slate-300">
-                            <img src="${i.image}" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80';" class="w-7 h-7 object-cover rounded-md border border-slate-700">
-                            <span>${i.qty}x ${i.title}</span>
-                        </div>
-                    `).join('')}
+                    ${order.items.map(i => {
+                        const resolvedImg = resolveImageUrl(i.image);
+                        return `
+                            <div class="flex items-center gap-2 text-xs text-slate-300">
+                                <img src="${resolvedImg}" onerror="this.onerror=null; this.src='${FALLBACK_IMAGE}';" class="w-7 h-7 object-cover rounded-md border border-slate-700">
+                                <span>${i.qty}x ${i.title}</span>
+                            </div>
+                        `;
+                    }).join('')}
                 </div>
             </td>
             <td class="py-3.5 px-4 font-bold text-white">
@@ -236,15 +261,18 @@ function printOrderReceipt(orderId) {
     document.getElementById('print-cust-time').textContent = order.deliveryTime;
 
     const itemsTbody = document.getElementById('print-items-body');
-    itemsTbody.innerHTML = order.items.map(i => `
-        <tr>
-            <td class="py-2"><img src="${i.image}" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80';" class="w-10 h-10 object-cover rounded border border-slate-300"></td>
-            <td class="py-2 font-medium">${i.title}</td>
-            <td class="py-2 text-center">${i.qty}</td>
-            <td class="py-2 text-right">${formatMoney(i.price)}</td>
-            <td class="py-2 text-right">${formatMoney(i.price * i.qty)}</td>
-        </tr>
-    `).join('');
+    itemsTbody.innerHTML = order.items.map(i => {
+        const resolvedImg = resolveImageUrl(i.image);
+        return `
+            <tr>
+                <td class="py-2"><img src="${resolvedImg}" onerror="this.onerror=null; this.src='${FALLBACK_IMAGE}';" class="w-10 h-10 object-cover rounded border border-slate-300"></td>
+                <td class="py-2 font-medium">${i.title}</td>
+                <td class="py-2 text-center">${i.qty}</td>
+                <td class="py-2 text-right">${formatMoney(i.price)}</td>
+                <td class="py-2 text-right">${formatMoney(i.price * i.qty)}</td>
+            </tr>
+        `;
+    }).join('');
 
     document.getElementById('print-subtotal').textContent = formatMoney(order.subtotal);
     document.getElementById('print-delivery').textContent = formatMoney(order.deliveryFee);
@@ -303,16 +331,18 @@ function exportOrdersToCSV() {
 function renderAdminProducts() {
     const grid = document.getElementById('admin-products-grid');
     grid.innerHTML = products.map(product => {
-        const imgList = (product.images && product.images.length > 0) ? product.images : [product.image || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80'];
+        const rawImgs = (product.images && product.images.length > 0) ? product.images : [product.image];
+        const imgList = rawImgs.map(url => resolveImageUrl(url));
+
         return `
             <div class="bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden shadow-xl flex flex-col">
                 <div class="h-44 overflow-hidden bg-slate-950 relative">
-                    <img src="${imgList[0]}" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80';" alt="${product.title}" class="w-full h-full object-cover">
+                    <img src="${imgList[0]}" onerror="this.onerror=null; this.src='${FALLBACK_IMAGE}';" alt="${product.title}" class="w-full h-full object-cover">
                     <span class="absolute top-3 left-3 bg-slate-950/80 text-white text-[10px] font-bold uppercase px-2 py-0.5 rounded-md border border-slate-700">${product.category}</span>
                     <span class="absolute bottom-2 right-2 bg-slate-900/90 text-amber-400 text-[10px] font-bold px-2 py-0.5 rounded-md border border-slate-800"><i class="fa-solid fa-images mr-1"></i>${imgList.length} Photos</span>
                 </div>
                 <div class="flex items-center gap-1.5 p-2 bg-slate-950/60 border-t border-b border-slate-800 overflow-x-auto">
-                    ${imgList.map(img => `<img src="${img}" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80';" class="w-8 h-8 object-cover rounded-md border border-slate-800">`).join('')}
+                    ${imgList.map(img => `<img src="${img}" onerror="this.onerror=null; this.src='${FALLBACK_IMAGE}';" class="w-8 h-8 object-cover rounded-md border border-slate-800">`).join('')}
                 </div>
                 <div class="p-4 flex-1 flex flex-col justify-between">
                     <div>
@@ -366,7 +396,7 @@ function addPhotoUrlInput(value = '') {
     const div = document.createElement('div');
     div.className = 'flex items-center gap-2';
     div.innerHTML = `
-        <input type="text" value="${value}" placeholder="Paste image link (e.g. https://...)" class="prod-url-input w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-brand-500">
+        <input type="text" value="${value}" placeholder="Paste post or photo URL (Instagram, web, etc.)" class="prod-url-input w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-brand-500">
         <button type="button" onclick="this.parentElement.remove()" class="text-slate-500 hover:text-red-400 text-xs px-2 py-1"><i class="fa-solid fa-trash"></i></button>
     `;
     container.appendChild(div);
@@ -386,7 +416,7 @@ function saveProduct(e) {
 
     const urlInputs = Array.from(document.querySelectorAll('.prod-url-input')).map(i => i.value.trim()).filter(val => val !== '');
     const allImages = [...urlInputs, ...tempUploadedImages];
-    if (allImages.length === 0) allImages.push('https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80');
+    if (allImages.length === 0) allImages.push(FALLBACK_IMAGE);
 
     db.collection("products").doc(id).set({
         title, price, category, images: allImages, image: allImages[0], description
