@@ -182,7 +182,7 @@ function renderAdminOrders() {
                 <div class="space-y-1">
                     ${order.items.map(i => `
                         <div class="flex items-center gap-2 text-xs text-slate-300">
-                            <img src="${i.image}" onerror="this.src='https://placehold.co/600x400/0ea5e9/ffffff?text=Product'" class="w-7 h-7 object-cover rounded-md border border-slate-750">
+                            <img src="${i.image}" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80';" class="w-7 h-7 object-cover rounded-md border border-slate-700">
                             <span>${i.qty}x ${i.title}</span>
                         </div>
                     `).join('')}
@@ -238,7 +238,7 @@ function printOrderReceipt(orderId) {
     const itemsTbody = document.getElementById('print-items-body');
     itemsTbody.innerHTML = order.items.map(i => `
         <tr>
-            <td class="py-2"><img src="${i.image}" onerror="this.src='https://placehold.co/600x400/0ea5e9/ffffff?text=Product'" class="w-10 h-10 object-cover rounded border border-slate-300"></td>
+            <td class="py-2"><img src="${i.image}" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80';" class="w-10 h-10 object-cover rounded border border-slate-300"></td>
             <td class="py-2 font-medium">${i.title}</td>
             <td class="py-2 text-center">${i.qty}</td>
             <td class="py-2 text-right">${formatMoney(i.price)}</td>
@@ -303,16 +303,16 @@ function exportOrdersToCSV() {
 function renderAdminProducts() {
     const grid = document.getElementById('admin-products-grid');
     grid.innerHTML = products.map(product => {
-        const imgList = (product.images && product.images.length > 0) ? product.images : [product.image || 'https://placehold.co/600x400/0ea5e9/ffffff?text=Product'];
+        const imgList = (product.images && product.images.length > 0) ? product.images : [product.image || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80'];
         return `
             <div class="bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden shadow-xl flex flex-col">
                 <div class="h-44 overflow-hidden bg-slate-950 relative">
-                    <img src="${imgList[0]}" onerror="this.src='https://placehold.co/600x400/0ea5e9/ffffff?text=Product'" alt="${product.title}" class="w-full h-full object-cover">
+                    <img src="${imgList[0]}" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80';" alt="${product.title}" class="w-full h-full object-cover">
                     <span class="absolute top-3 left-3 bg-slate-950/80 text-white text-[10px] font-bold uppercase px-2 py-0.5 rounded-md border border-slate-700">${product.category}</span>
                     <span class="absolute bottom-2 right-2 bg-slate-900/90 text-amber-400 text-[10px] font-bold px-2 py-0.5 rounded-md border border-slate-800"><i class="fa-solid fa-images mr-1"></i>${imgList.length} Photos</span>
                 </div>
                 <div class="flex items-center gap-1.5 p-2 bg-slate-950/60 border-t border-b border-slate-800 overflow-x-auto">
-                    ${imgList.map(img => `<img src="${img}" onerror="this.src='https://placehold.co/600x400/0ea5e9/ffffff?text=Product'" class="w-8 h-8 object-cover rounded-md border border-slate-800">`).join('')}
+                    ${imgList.map(img => `<img src="${img}" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80';" class="w-8 h-8 object-cover rounded-md border border-slate-800">`).join('')}
                 </div>
                 <div class="p-4 flex-1 flex flex-col justify-between">
                     <div>
@@ -366,7 +366,7 @@ function addPhotoUrlInput(value = '') {
     const div = document.createElement('div');
     div.className = 'flex items-center gap-2';
     div.innerHTML = `
-        <input type="text" value="${value}" placeholder="Paste any image or link (e.g. https://...)" class="prod-url-input w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-brand-500">
+        <input type="text" value="${value}" placeholder="Paste image link (e.g. https://...)" class="prod-url-input w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-brand-500">
         <button type="button" onclick="this.parentElement.remove()" class="text-slate-500 hover:text-red-400 text-xs px-2 py-1"><i class="fa-solid fa-trash"></i></button>
     `;
     container.appendChild(div);
@@ -386,7 +386,7 @@ function saveProduct(e) {
 
     const urlInputs = Array.from(document.querySelectorAll('.prod-url-input')).map(i => i.value.trim()).filter(val => val !== '');
     const allImages = [...urlInputs, ...tempUploadedImages];
-    if (allImages.length === 0) allImages.push('https://placehold.co/600x400/0ea5e9/ffffff?text=Product');
+    if (allImages.length === 0) allImages.push('https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80');
 
     db.collection("products").doc(id).set({
         title, price, category, images: allImages, image: allImages[0], description
@@ -420,7 +420,7 @@ function saveAdminSettings(e) {
     settings.mapsUrl = document.getElementById('setting-maps-url').value;
     settings.deliveryFee = parseFloat(document.getElementById('setting-delivery-fee').value) || 0;
 
-    const bgUrlInput = document.getElementById('setting-bg-url').value;
+    const bgUrlInput = document.getElementById('setting-bg-url') ? document.getElementById('setting-bg-url').value : '';
     if (bgUrlInput) settings.bgUrl = bgUrlInput;
 
     db.collection("store").doc("config").set(settings).then(() => {
