@@ -1,60 +1,277 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full bg-slate-900">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Shop Ya Kamau - Admin Portal</title>
-  <link rel="stylesheet" href="styles.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SHOP YA KAMAU - Admin Control Center</title>
+    <!-- Firebase App & Firestore Compatibility SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- SheetJS CDN for Spreadsheet Exporting -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="styles.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
 </head>
-<body>
-  <div class="container">
-    <header>
-      <h1>Admin Portal</h1>
-      <p>Manage your product inventory using direct social media image URLs</p>
-      <div class="nav-links">
-        <a href="index.html">View Storefront</a> | <a href="admin.html">Admin Portal</a>
-      </div>
-    </header>
+<body class="h-full font-sans text-slate-800 flex flex-col antialiased selection:bg-brand-500 selection:text-white">
 
-    <main>
-      <div class="card">
-        <h2 id="formTitle" style="margin-bottom: 16px;">Add New Product</h2>
-        <form id="productForm">
-          <input type="hidden" id="productId">
-          <div class="form-group">
-            <label for="productName">Product Name</label>
-            <input type="text" id="productName" required placeholder="Enter product name">
-          </div>
-          <div class="form-group">
-            <label for="productPrice">Price (KES)</label>
-            <input type="number" id="productPrice" step="0.01" required placeholder="Enter price">
-          </div>
-          <div class="form-group">
-            <label for="productImage">Social Media Image URL</label>
-            <input type="url" id="productImage" required placeholder="Paste image URL from Instagram, Facebook, etc.">
-            <small style="color: var(--text-light); display: block; margin-top: 4px;">Paste any direct image link copied from your social media handles (supports all formats: .jpg, .png, .webp, dynamic URLs).</small>
-          </div>
-          <div class="form-group">
-            <label for="productDescription">Description</label>
-            <textarea id="productDescription" rows="3" placeholder="Enter product description"></textarea>
-          </div>
-          <button type="submit" id="saveBtn">Add Product</button>
-          <button type="button" id="cancelBtn" class="danger" style="display: none; margin-left: 10px;">Cancel Edit</button>
-        </form>
-      </div>
-
-      <div class="card">
-        <h2>Existing Products Inventory</h2>
-        <div id="adminProductGrid" class="product-grid" style="margin-top: 20px;">
-          <!-- Admin products list will load here -->
+    <div id="global-toast" class="fixed top-5 right-5 z-50 transform transition-all duration-300 translate-y-[-100px] opacity-0 pointer-events-none">
+        <div class="bg-slate-900 text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3 border border-slate-700">
+            <i id="toast-icon" class="fa-solid fa-circle-check text-emerald-400 text-lg"></i>
+            <span id="toast-message" class="text-sm font-medium">Notification message</span>
         </div>
-      </div>
-    </main>
-  </div>
+    </div>
 
-  <!-- Firebase SDK scripts -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
-  <script src="admin.js"></script>
+    <div class="flex-1 flex flex-col min-h-screen">
+        <div id="admin-view" class="flex-1 flex flex-col bg-slate-900 bg-cover bg-center min-h-screen relative" style="background-image: url('https://images.unsplash.com/photo-1557683316-973673baf926?auto=format&fit=crop&w=1600&q=80');">
+            <div class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm z-0"></div>
+
+            <div class="relative z-10 flex-1 flex flex-col">
+                <header class="bg-slate-900/90 border-b border-slate-800 px-4 sm:px-6 py-4 flex items-center justify-between backdrop-blur-md">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-bold text-xl shadow-lg"><i class="fa-solid fa-user-gear"></i></div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <h2 class="text-lg font-bold text-white leading-none">Admin Control Center</h2>
+                                <span class="bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[10px] uppercase font-bold px-2 py-0.5 rounded-full">Owner Access</span>
+                            </div>
+                            <p class="text-xs text-slate-400 mt-1">Nairobi Time (EAT) & Real-Time Cloud Sync</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-3">
+                        <a href="index.html" class="bg-brand-600 hover:bg-brand-500 text-white px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition shadow-md"><i class="fa-solid fa-store"></i><span>View Live Customer Store</span></a>
+                        <button onclick="openChangePasswordModal()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition"><i class="fa-solid fa-key text-amber-400"></i><span class="hidden md:inline">Change Password</span></button>
+                        <button onclick="logoutAdmin()" class="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition"><i class="fa-solid fa-right-from-bracket"></i><span class="hidden sm:inline">Logout</span></button>
+                    </div>
+                </header>
+
+                <div class="bg-slate-900/60 border-b border-slate-800/80 px-4 sm:px-6">
+                    <div class="flex items-center space-x-2 sm:space-x-6 overflow-x-auto py-2">
+                        <button onclick="switchAdminTab('orders')" id="tab-btn-orders" class="admin-tab-btn px-4 py-2.5 rounded-xl font-medium text-sm flex items-center gap-2 text-white bg-brand-600 shadow-md"><i class="fa-solid fa-clipboard-list"></i><span>Orders & Deliveries</span><span id="admin-pending-count" class="bg-amber-400 text-slate-950 text-xs font-bold px-2 py-0.5 rounded-full">0</span></button>
+                        <button onclick="switchAdminTab('products')" id="tab-btn-products" class="admin-tab-btn px-4 py-2.5 rounded-xl font-medium text-sm flex items-center gap-2 text-slate-400 hover:text-white transition"><i class="fa-solid fa-boxes-stacked"></i><span>Product Catalog (Multi-Photo)</span></button>
+                        <button onclick="switchAdminTab('settings')" id="tab-btn-settings" class="admin-tab-btn px-4 py-2.5 rounded-xl font-medium text-sm flex items-center gap-2 text-slate-400 hover:text-white transition"><i class="fa-solid fa-sliders"></i><span>Store Settings & Currency</span></button>
+                    </div>
+                </div>
+
+                <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+                    <div id="admin-tab-orders" class="space-y-6">
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 flex items-center justify-between">
+                                <div><p class="text-xs text-slate-400 uppercase font-semibold">Total Revenue</p><h3 id="stat-total-revenue" class="text-2xl font-bold text-emerald-400 mt-1">$0.00</h3></div>
+                                <div class="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-xl"><i class="fa-solid fa-sack-dollar"></i></div>
+                            </div>
+                            <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 flex items-center justify-between">
+                                <div><p class="text-xs text-slate-400 uppercase font-semibold">Pending Deliveries</p><h3 id="stat-pending-orders" class="text-2xl font-bold text-amber-400 mt-1">0</h3></div>
+                                <div class="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center text-xl"><i class="fa-solid fa-truck-fast"></i></div>
+                            </div>
+                            <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 flex items-center justify-between">
+                                <div><p class="text-xs text-slate-400 uppercase font-semibold">Completed Orders</p><h3 id="stat-completed-orders" class="text-2xl font-bold text-blue-400 mt-1">0</h3></div>
+                                <div class="w-12 h-12 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center text-xl"><i class="fa-solid fa-circle-check"></i></div>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+                            <div class="p-4 sm:p-5 border-b border-slate-800 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                                <div>
+                                    <h3 class="text-lg font-bold text-white">Customer Orders Record (Nairobi Local Time EAT)</h3>
+                                    <p class="text-xs text-slate-400">Export order history directly into Microsoft Excel spreadsheets for easy searching</p>
+                                </div>
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <button onclick="exportOrdersToExcel()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3.5 py-2 rounded-xl border border-emerald-500/30 transition flex items-center gap-1.5 shadow-md"><i class="fa-solid fa-file-excel"></i> Export to Excel (.xlsx)</button>
+                                    <button onclick="exportOrdersToCSV()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold px-3.5 py-2 rounded-xl border border-slate-700 transition flex items-center gap-1.5"><i class="fa-solid fa-file-csv"></i> Export CSV</button>
+                                    <button onclick="renderAdminOrders()" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-2 rounded-xl border border-slate-700"><i class="fa-solid fa-rotate-right"></i></button>
+                                </div>
+                            </div>
+
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left text-slate-300 text-sm">
+                                    <thead class="bg-slate-950/60 text-xs uppercase text-slate-400 border-b border-slate-800">
+                                        <tr>
+                                            <th class="py-3.5 px-4">Order ID & Date (EAT)</th>
+                                            <th class="py-3.5 px-4">Customer Details</th>
+                                            <th class="py-3.5 px-4">Items & Images</th>
+                                            <th class="py-3.5 px-4">Total</th>
+                                            <th class="py-3.5 px-4">Status</th>
+                                            <th class="py-3.5 px-4 text-right">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="admin-orders-table-body" class="divide-y divide-slate-800/60"></tbody>
+                                </table>
+                            </div>
+                            <div id="no-orders-msg" class="text-center py-12 text-slate-500"><i class="fa-solid fa-box-archive text-3xl mb-2"></i><p>No orders placed yet. Test by ordering on the storefront!</p></div>
+                        </div>
+                    </div>
+
+                    <div id="admin-tab-products" class="hidden space-y-6">
+                        <div class="flex justify-between items-center">
+                            <div><h3 class="text-lg font-bold text-white">Catalog & Multi-Angle Photo Management</h3><p class="text-xs text-slate-400">Add multiple high-res product photos from various angles or social posts</p></div>
+                            <button onclick="openProductModal()" class="bg-brand-600 hover:bg-brand-500 text-white font-medium text-sm px-4 py-2.5 rounded-xl shadow-lg flex items-center gap-2 transition"><i class="fa-solid fa-plus"></i> Add New Product</button>
+                        </div>
+                        <div id="admin-products-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+                    </div>
+
+                    <div id="admin-tab-settings" class="hidden space-y-6">
+                        <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-xl max-w-3xl mx-auto text-slate-200">
+                            <h3 class="text-xl font-bold text-white mb-1 border-b border-slate-800 pb-3 flex items-center gap-2"><i class="fa-solid fa-sliders text-amber-400"></i> Business Profile, Currency & Custom Settings</h3>
+                            <form id="admin-settings-form" onsubmit="saveAdminSettings(event)" class="space-y-4 mt-4">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div><label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Business Name</label><input type="text" id="setting-store-name" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-brand-500"></div>
+                                    <div>
+                                        <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Currency Symbol / Code</label>
+                                        <div class="flex gap-2">
+                                            <select id="setting-currency-select" onchange="handleCurrencySelect(this)" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500">
+                                                <option value="KSh">KSh (KES)</option>
+                                                <option value="$">$ (USD)</option>
+                                                <option value="€">€ (EUR)</option>
+                                                <option value="£">£ (GBP)</option>
+                                                <option value="custom">Custom...</option>
+                                            </select>
+                                            <input type="text" id="setting-store-currency" required placeholder="KSh" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-brand-500">
+                                        </div>
+                                    </div>
+                                    <div><label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Phone Contact Number</label><input type="text" id="setting-store-phone" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-brand-500"></div>
+                                    <div><label class="block text-xs font-semibold text-slate-400 uppercase mb-1">WhatsApp Contact (with Country Code)</label><input type="text" id="setting-store-whatsapp" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-brand-500"></div>
+                                    <div><label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Instagram Handle / Link</label><input type="text" id="setting-store-instagram" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-brand-500"></div>
+                                    <div><label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Facebook Handle / Page Link</label><input type="text" id="setting-store-facebook" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-brand-500"></div>
+                                    <div><label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Default Delivery Fee</label><input type="number" step="0.01" id="setting-delivery-fee" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-brand-500"></div>
+                                </div>
+                                <div><label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Physical Business Address Text</label><textarea id="setting-store-location" rows="2" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-brand-500"></textarea></div>
+                                <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800 space-y-2">
+                                    <label class="block text-xs font-semibold text-brand-400 uppercase flex items-center gap-1.5"><i class="fa-solid fa-map-location-dot text-red-400"></i> Google Maps Embed URL or Direct Share Link</label>
+                                    <input type="text" id="setting-maps-url" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-brand-500">
+                                </div>
+                                <div class="pt-4 flex justify-end"><button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white font-medium px-6 py-2.5 rounded-xl shadow-lg transition">Save Settings</button></div>
+                            </form>
+                        </div>
+                    </div>
+                </main>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODALS -->
+    <div id="product-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl text-slate-200 max-h-[90vh] flex flex-col">
+            <div class="p-4 border-b border-slate-800 flex justify-between items-center"><h3 id="product-modal-title" class="font-bold text-white text-base">Add New Product</h3><button onclick="closeProductModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button></div>
+            <form id="product-form" onsubmit="saveProduct(event)" class="p-5 space-y-3.5 overflow-y-auto flex-1">
+                <input type="hidden" id="prod-id">
+                <div><label class="block text-xs font-bold text-slate-400 uppercase mb-1">Product Title *</label><input type="text" id="prod-title" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-500"></div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div><label class="block text-xs font-bold text-slate-400 uppercase mb-1">Price *</label><input type="number" step="0.01" id="prod-price" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-500"></div>
+                    <div><label class="block text-xs font-bold text-slate-400 uppercase mb-1">Category *</label><input type="text" id="prod-category" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-500"></div>
+                </div>
+                <div class="bg-slate-950/60 p-3.5 rounded-xl border border-slate-800 space-y-3">
+                    <div class="flex justify-between items-center">
+                        <label class="block text-xs font-bold text-amber-400 uppercase"><i class="fa-solid fa-images mr-1"></i> Product Photos (Multiple Angles / Post URLs)</label>
+                        <button type="button" onclick="addPhotoUrlInput()" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-brand-300 px-2.5 py-1 rounded-lg border border-slate-700 transition">+ Add URL</button>
+                    </div>
+                    <div id="photo-urls-container" class="space-y-2"></div>
+                </div>
+                <div><label class="block text-xs font-bold text-slate-400 uppercase mb-1">Detailed Description *</label><textarea id="prod-desc" rows="3" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-500"></textarea></div>
+                <div class="pt-2 flex justify-end gap-2"><button type="button" onclick="closeProductModal()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-medium">Cancel</button><button type="submit" class="px-5 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold">Save Product</button></div>
+            </form>
+        </div>
+    </div>
+
+    <div id="admin-login-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl text-center">
+            <div class="w-14 h-14 bg-amber-500/10 text-amber-400 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl border border-amber-500/20"><i class="fa-solid fa-lock"></i></div>
+            <h3 class="text-xl font-bold text-white">Owner Authorization</h3>
+            <p class="text-xs text-slate-400 mt-1 mb-5">Enter security password to manage store & orders</p>
+            <form onsubmit="handleAdminLogin(event)" class="space-y-4">
+                <input type="password" id="admin-password-input" placeholder="Enter password (default: admin123)" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-center text-white focus:outline-none focus:ring-2 focus:ring-amber-500">
+                <div class="flex gap-2">
+                    <button type="button" onclick="window.location.href='index.html'" class="w-1/2 bg-slate-800 hover:bg-slate-700 text-slate-300 py-2.5 rounded-xl text-xs font-semibold">Back to Store</button>
+                    <button type="submit" class="w-1/2 bg-amber-500 hover:bg-amber-400 text-slate-950 py-2.5 rounded-xl text-xs font-bold shadow-lg">Access Portal</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="change-pass-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl">
+            <h3 class="text-lg font-bold text-white mb-3">Update Security Password</h3>
+            <form onsubmit="handleChangePassword(event)" class="space-y-3">
+                <div><label class="block text-xs text-slate-400 mb-1">Current Password</label><input type="password" id="old-pass" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500"></div>
+                <div><label class="block text-xs text-slate-400 mb-1">New Password</label><input type="password" id="new-pass" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500"></div>
+                <div class="pt-2 flex justify-end gap-2"><button type="button" onclick="toggleChangePassModal(false)" class="px-3 py-2 rounded-xl bg-slate-800 text-xs">Cancel</button><button type="submit" class="px-4 py-2 rounded-xl bg-amber-500 text-slate-950 text-xs font-bold">Update Password</button></div>
+            </form>
+        </div>
+    </div>
+
+    <div id="printable-receipt" class="hidden">
+        <div class="border-2 border-slate-900 p-6 max-w-2xl mx-auto font-sans">
+            <div class="flex justify-between items-start border-b-2 border-slate-900 pb-4 mb-4">
+                <div>
+                    <h1 id="print-store-name" class="text-2xl font-bold tracking-tight uppercase">SHOP YA KAMAU</h1>
+                    <p id="print-store-address" class="text-xs text-slate-600 mt-0.5">Location Address</p>
+                    <p id="print-store-phone" class="text-xs text-slate-600">Contact: +0000000</p>
+                </div>
+                <div class="text-right">
+                    <span class="inline-block bg-slate-900 text-white font-bold text-xs px-3 py-1 uppercase tracking-widest mb-1">Delivery Receipt</span>
+                    <p class="text-xs font-bold">Order ID: <span id="print-order-id">#0000</span></p>
+                    <p class="text-xs text-slate-600">Nairobi Time: <span id="print-order-date">Date</span></p>
+                </div>
+            </div>
+            <div class="bg-slate-100 p-3 rounded mb-4 text-xs">
+                <p class="font-bold uppercase text-slate-700 mb-1">Customer & Delivery Information</p>
+                <div class="grid grid-cols-2 gap-2">
+                    <p><strong>Name:</strong> <span id="print-cust-name">Name</span></p>
+                    <p><strong>Phone:</strong> <span id="print-cust-phone">Phone</span></p>
+                    <p class="col-span-2"><strong>Address:</strong> <span id="print-cust-address">Address</span></p>
+                    <p class="col-span-2"><strong>Requested Delivery Time:</strong> <span id="print-cust-time">ASAP</span></p>
+                </div>
+            </div>
+            <table class="w-full text-left text-xs mb-4 border-collapse">
+                <thead>
+                    <tr class="border-b-2 border-slate-900 uppercase">
+                        <th class="py-2">Photo</th>
+                        <th class="py-2">Item Description</th>
+                        <th class="py-2 text-center">Qty</th>
+                        <th class="py-2 text-right">Unit Price</th>
+                        <th class="py-2 text-right">Subtotal</th>
+                    </tr>
+                </thead>
+                <tbody id="print-items-body" class="divide-y divide-slate-200"></tbody>
+            </table>
+            <div class="flex justify-end text-xs mb-6">
+                <div class="w-48 space-y-1 text-right">
+                    <div class="flex justify-between"><span>Items Subtotal:</span><span id="print-subtotal">$0.00</span></div>
+                    <div class="flex justify-between"><span>Delivery Fee:</span><span id="print-delivery">$0.00</span></div>
+                    <div class="flex justify-between font-bold text-sm border-t border-slate-900 pt-1"><span>Total Paid:</span><span id="print-total">$0.00</span></div>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-8 border-t border-dashed border-slate-400 pt-6 mt-8 text-[11px]">
+                <div><p class="text-slate-500 mb-6">Dispatched By (Store Representative):</p><div class="border-b border-slate-800 w-3/4"></div></div>
+                <div><p class="text-slate-500 mb-6">Received In Good Condition By (Customer):</p><div class="border-b border-slate-800 w-3/4"></div></div>
+            </div>
+            <p class="text-center text-[10px] text-slate-400 mt-6">Thank you for your business!</p>
+        </div>
+    </div>
+
+    <script src="admin.js"></script>
 </body>
 </html>
